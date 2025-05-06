@@ -128,13 +128,6 @@ class TemplateForecaster(ForecastBot):
             You write your rationale remembering that good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time.
 
             You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters err on the side of having wide confidence intervals to account for unexpected outcomes.
- 
-             Important tips: 
-             - Your 20th percentile forecast should be greater than the lower bound of {question.lower_bound}.
-             - Your 80th percentile forecast should be less than the upper bound of {question.upper_bound}.
-             - Have a wide range for your tails since you might not have all the information, or might be misunderstanding something.
-             - Historically your 10th and 90th percentiles have been far too narrow. Try to be more calibrated by making them twice as wide as you think is necessary.
-             - Like a good forecaster use your own judgment!
 
             The last thing you write is your final answer as: "Probability: ZZ%", 0-100
             """
@@ -191,13 +184,6 @@ class TemplateForecaster(ForecastBot):
             You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters leave some moderate probability on most options to account for unexpected outcomes.
 
             You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters err on the side of having wide confidence intervals to account for unexpected outcomes.
- 
-             Important tips: 
-             - Your 20th percentile forecast should be greater than the lower bound of {question.lower_bound}.
-             - Your 80th percentile forecast should be less than the upper bound of {question.upper_bound}.
-             - Have a wide range for your tails since you might not have all the information, or might be misunderstanding something.
-             - Historically your 10th and 90th percentiles have been far too narrow. Try to be more calibrated by making them twice as wide as you think is necessary.
-             - Like a good forecaster use your own judgment!
 
             The last thing you write is your final probabilities for the N options in this order {question.options} as:
             Option_A: Probability_A
