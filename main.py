@@ -88,57 +88,18 @@ class TemplateForecaster(ForecastBot):
             )
             return research
 
-    async def _call_perplexity(
-        self, question: str, use_open_router: bool = False
-    ) -> str:
-        prompt = clean_indents(
-            f"""
-            You are an assistant to a superforecaster.
-            The superforecaster will give you a question they intend to forecast on.
-            To be a great assistant, you generate a concise but detailed rundown of the most relevant news, including if the question would resolve Yes or No based on current information.
-            You do not produce forecasts yourself.
-
-            Question:
-            {question}
-            """
-        )  # NOTE: The metac bot in Q1 put everything but the question in the system prompt.
-        if use_open_router:
-            model_name = "openrouter/perplexity/sonar-reasoning"
-        else:
-            model_name = "perplexity/sonar-pro"  # perplexity/sonar-reasoning and perplexity/sonar are cheaper, but do only 1 search
-        model = GeneralLlm(
-            model=model_name,
-            temperature=0.1,
-        )
-        response = await model.invoke(prompt)
-        return response
-
-    async def _call_exa_smart_searcher(self, question: str) -> str:
-        """
-        SmartSearcher is a custom class that is a wrapper around an search on Exa.ai
-        """
-        searcher = SmartSearcher(
-            model=self.get_llm("default", "llm"),
-            temperature=0,
-            num_searches_to_run=2,
-            num_sites_per_search=10,
-        )
-        prompt = (
-            "You are an assistant to a superforecaster. The superforecaster will give"
-            "you a question they intend to forecast on. To be a great assistant, you generate"
-            "a concise but detailed rundown of the most relevant news, including if the question"
-            "would resolve Yes or No based on current information. You do not produce forecasts yourself."
-            f"\n\nThe question is: {question}"
-        )  # You can ask the searcher to filter by date, exclude/include a domain, and run specific searches for finding sources vs finding highlights within a source
-        response = await searcher.invoke(prompt)
-        return response
-
     async def _run_forecast_on_binary(
         self, question: BinaryQuestion, research: str
     ) -> ReasonedPrediction[float]:
         prompt = clean_indents(
             f"""
             You are a professional forecaster interviewing for a job.
+
+            Tips from good forecasters:
+              - Think about the base rates for similar events in the past.
+              - Put extra weight on the status quo outcome since the world changes slowly most of the time. 
+              - Even if an option seems impossible, never put less than 2% on an option. (It is possible that you don't have all of the information, or have misunderstood something.)
+              - Like a good forecaster, you should use your own judgment to come to the most accurate forecast.
 
             Your interview question is:
             {question.question_text}
@@ -166,10 +127,20 @@ class TemplateForecaster(ForecastBot):
 
             You write your rationale remembering that good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time.
 
+            You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters err on the side of having wide confidence intervals to account for unexpected outcomes.
+ 
+             Important tips: 
+             - Your 20th percentile forecast should be greater than the lower bound of {question.lower_bound}.
+             - Your 80th percentile forecast should be less than the upper bound of {question.upper_bound}.
+             - Have a wide range for your tails since you might not have all the information, or might be misunderstanding something.
+             - Historically your 10th and 90th percentiles have been far too narrow. Try to be more calibrated by making them twice as wide as you think is necessary.
+             - Like a good forecaster use your own judgment!
+
             The last thing you write is your final answer as: "Probability: ZZ%", 0-100
             """
         )
-        reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        # reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
         prediction: float = PredictionExtractor.extract_last_percentage_value(
             reasoning, max_prediction=1, min_prediction=0
         )
@@ -186,6 +157,12 @@ class TemplateForecaster(ForecastBot):
         prompt = clean_indents(
             f"""
             You are a professional forecaster interviewing for a job.
+
+            Tips from good forecasters:
+              - Think about the base rates for similar events in the past.
+              - Put extra weight on the status quo outcome since the world changes slowly most of the time. 
+              - Even if an option seems impossible, never put less than 2% on an option. (It is possible that you don't have all of the information, or have misunderstood something.)
+              - Like a good forecaster, you should use your own judgment to come to the most accurate forecast.
 
             Your interview question is:
             {question.question_text}
@@ -213,6 +190,15 @@ class TemplateForecaster(ForecastBot):
 
             You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters leave some moderate probability on most options to account for unexpected outcomes.
 
+            You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters err on the side of having wide confidence intervals to account for unexpected outcomes.
+ 
+             Important tips: 
+             - Your 20th percentile forecast should be greater than the lower bound of {question.lower_bound}.
+             - Your 80th percentile forecast should be less than the upper bound of {question.upper_bound}.
+             - Have a wide range for your tails since you might not have all the information, or might be misunderstanding something.
+             - Historically your 10th and 90th percentiles have been far too narrow. Try to be more calibrated by making them twice as wide as you think is necessary.
+             - Like a good forecaster use your own judgment!
+
             The last thing you write is your final probabilities for the N options in this order {question.options} as:
             Option_A: Probability_A
             Option_B: Probability_B
@@ -220,7 +206,8 @@ class TemplateForecaster(ForecastBot):
             Option_N: Probability_N
             """
         )
-        reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        #reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
         prediction: PredictedOptionList = (
             PredictionExtractor.extract_option_list_with_percentage_afterwards(
                 reasoning, question.options
@@ -242,6 +229,12 @@ class TemplateForecaster(ForecastBot):
         prompt = clean_indents(
             f"""
             You are a professional forecaster interviewing for a job.
+
+            Tips from good forecasters:
+              - Think about the base rates for similar events in the past.
+              - Put extra weight on the status quo outcome since the world changes slowly most of the time. 
+              - Even if an option seems impossible, never put less than 2% on an option. (It is possible that you don't have all of the information, or have misunderstood something.)
+              - Like a good forecaster, you should use your own judgment to come to the most accurate forecast.
 
             Your interview question is:
             {question.question_text}
@@ -278,6 +271,15 @@ class TemplateForecaster(ForecastBot):
 
             You remind yourself that good forecasters are humble and set wide 90/10 confidence intervals to account for unknown unknowns.
 
+            You write your rationale remembering that (1) good forecasters put extra weight on the status quo outcome since the world changes slowly most of the time, and (2) good forecasters err on the side of having wide confidence intervals to account for unexpected outcomes.
+ 
+             Important tips: 
+             - Your 20th percentile forecast should be greater than the lower bound of {question.lower_bound}.
+             - Your 80th percentile forecast should be less than the upper bound of {question.upper_bound}.
+             - Have a wide range for your tails since you might not have all the information, or might be misunderstanding something.
+             - Historically your 10th and 90th percentiles have been far too narrow. Try to be more calibrated by making them twice as wide as you think is necessary.
+             - Like a good forecaster use your own judgment!
+
             The last thing you write is your final answer as:
             "
             Percentile 10: XX
@@ -289,7 +291,8 @@ class TemplateForecaster(ForecastBot):
             "
             """
         )
-        reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        # reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
         prediction: NumericDistribution = (
             PredictionExtractor.extract_numeric_distribution_from_list_of_percentile_number_and_probability(
                 reasoning, question
