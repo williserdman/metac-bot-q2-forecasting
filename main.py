@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Literal
+import time
 
 from forecasting_tools import (
     AskNewsSearcher,
@@ -63,29 +64,40 @@ class TemplateForecaster(ForecastBot):
 
     async def run_research(self, question: MetaculusQuestion) -> str:
         async with self._concurrency_limiter:
+            # Step 1: Generate 5 key factors
+            key_factors_prompt = clean_indents(
+                f"""
+                You are a professional forecaster tasked with analyzing the following question:
+                {question.question_text}
+
+                Tips for identifying key factors:
+                - Consider historical trends and base rates.
+                - Identify major drivers or variables that could influence the outcome.
+                - Think about external events, policies, or technological changes.
+                - Be creative and think outside the box.
+                - Consider the implications of the question and its context.
+
+                Your task is to list 5 key factors that could influence the outcome of this question.
+                Provide the factors as a numbered list with a brief explanation for each.
+                """
+            )
+            key_factors_response = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(key_factors_prompt)
+            logger.info(f"Key factors for question {question.page_url}:\n{key_factors_response}")
+
+            # Extract the 5 factors from the response (assuming they are in a numbered list)
+            key_factors = key_factors_response.split("\n")[:5]
+
+            # Step 2: Research each factor using AskNews
             research = ""
             if os.getenv("ASKNEWS_CLIENT_ID") and os.getenv("ASKNEWS_SECRET"):
-                research = await AskNewsSearcher().get_formatted_news_async(
-                    question.question_text
-                )
-            elif os.getenv("EXA_API_KEY"):
-                research = await self._call_exa_smart_searcher(
-                    question.question_text
-                )
-            elif os.getenv("PERPLEXITY_API_KEY"):
-                research = await self._call_perplexity(question.question_text)
-            elif os.getenv("OPENROUTER_API_KEY"):
-                research = await self._call_perplexity(
-                    question.question_text, use_open_router=True
-                )
+                for factor in key_factors:
+                    factor_research = await AskNewsSearcher().get_formatted_news_async(factor)
+                    research += f"Research on '{factor}':\n{factor_research}\n\n"
+                    time.sleep(1)  # Rate limit for AskNews API
             else:
-                logger.warning(
-                    f"No research provider found when processing question URL {question.page_url}. Will pass back empty string."
-                )
-                research = ""
-            logger.info(
-                f"Found Research for URL {question.page_url}:\n{research}"
-            )
+                logger.warning("AskNews credentials not found. Skipping research.")
+            
+            logger.info(f"Research for question {question.page_url}:\n{research}")
             return research
 
     async def _run_forecast_on_binary(
