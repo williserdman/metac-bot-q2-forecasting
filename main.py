@@ -59,7 +59,9 @@ class TemplateForecaster(ForecastBot):
     Additionally OpenRouter has large rate limits immediately on account creation
     """
 
-    _max_concurrent_questions = 2  # Set this to whatever works for your search-provider/ai-model rate limits
+    _max_concurrent_questions = (
+        2  # Set this to whatever works for your search-provider/ai-model rate limits
+    )
     _concurrency_limiter = asyncio.Semaphore(_max_concurrent_questions)
 
     async def run_research(self, question: MetaculusQuestion) -> str:
@@ -67,7 +69,7 @@ class TemplateForecaster(ForecastBot):
             # Step 1: Generate 5 key factors
             key_factors_prompt = clean_indents(
                 f"""
-                You are a professional forecaster tasked with analyzing the following question:
+                You are a professional quantitative researcher tasked with analyzing the following question:
                 {question.question_text}
 
                 Tips for identifying key factors:
@@ -79,24 +81,43 @@ class TemplateForecaster(ForecastBot):
 
                 Your task is to list 5 key factors that could influence the outcome of this question.
                 Provide the factors as a numbered list with a brief explanation for each.
+
+                The last thing you write is:
+                Factor_1 :=> brief explanation of Factor_1
+                Factor_2 :=> brief explanation of Factor_2
+                ...
+                Factor_5 :=> brief explanation of Factor_5
                 """
             )
-            key_factors_response = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(key_factors_prompt)
-            logger.info(f"Key factors for question {question.page_url}:\n{key_factors_response}")
+            key_factors_response = await GeneralLlm(
+                model="metaculus/o4-mini", temperature=1
+            ).invoke(key_factors_prompt)
+            logger.info(
+                f"Key factors for question {question.page_url}:\n{key_factors_response}"
+            )
 
             # Extract the 5 factors from the response (assuming they are in a numbered list)
             key_factors = key_factors_response.split("\n")[:5]
+            for i in range(len(key_factors)):
+                # Remove the numbering and any leading/trailing whitespace
+                key_factors[i] = key_factors[i].split(":=>")[-1].strip()
 
             # Step 2: Research each factor using AskNews
             research = ""
             if os.getenv("ASKNEWS_CLIENT_ID") and os.getenv("ASKNEWS_SECRET"):
                 for factor in key_factors:
-                    factor_research = await AskNewsSearcher().get_formatted_news_async(factor)
-                    research += f"Research on '{factor}':\n{factor_research}\n\n"
+                    try:
+                        factor_research = (
+                            await AskNewsSearcher().get_formatted_news_async(factor)
+                        )
+                        research += f"Research on '{factor}':\n{factor_research}\n\n"
+                    except Exception as e:
+                        logger.warning(f"Error researching factor '{factor}': {e}")
+
                     time.sleep(1)  # Rate limit for AskNews API
             else:
                 logger.warning("AskNews credentials not found. Skipping research.")
-            
+
             logger.info(f"Research for question {question.page_url}:\n{research}")
             return research
 
@@ -145,16 +166,16 @@ class TemplateForecaster(ForecastBot):
             """
         )
         # reasoning = await self.get_llm("default", "llm").invoke(prompt)
-        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(
+            prompt
+        )
         prediction: float = PredictionExtractor.extract_last_percentage_value(
             reasoning, max_prediction=1, min_prediction=0
         )
         logger.info(
             f"Forecasted URL {question.page_url} as {prediction} with reasoning:\n{reasoning}"
         )
-        return ReasonedPrediction(
-            prediction_value=prediction, reasoning=reasoning
-        )
+        return ReasonedPrediction(prediction_value=prediction, reasoning=reasoning)
 
     async def _run_forecast_on_multiple_choice(
         self, question: MultipleChoiceQuestion, research: str
@@ -204,8 +225,10 @@ class TemplateForecaster(ForecastBot):
             Option_N: Probability_N
             """
         )
-        #reasoning = await self.get_llm("default", "llm").invoke(prompt)
-        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
+        # reasoning = await self.get_llm("default", "llm").invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(
+            prompt
+        )
         prediction: PredictedOptionList = (
             PredictionExtractor.extract_option_list_with_percentage_afterwards(
                 reasoning, question.options
@@ -214,9 +237,7 @@ class TemplateForecaster(ForecastBot):
         logger.info(
             f"Forecasted URL {question.page_url} as {prediction} with reasoning:\n{reasoning}"
         )
-        return ReasonedPrediction(
-            prediction_value=prediction, reasoning=reasoning
-        )
+        return ReasonedPrediction(prediction_value=prediction, reasoning=reasoning)
 
     async def _run_forecast_on_numeric(
         self, question: NumericQuestion, research: str
@@ -290,7 +311,9 @@ class TemplateForecaster(ForecastBot):
             """
         )
         # reasoning = await self.get_llm("default", "llm").invoke(prompt)
-        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(prompt)
+        reasoning = await GeneralLlm(model="metaculus/o4-mini", temperature=1).invoke(
+            prompt
+        )
         prediction: NumericDistribution = (
             PredictionExtractor.extract_numeric_distribution_from_list_of_percentile_number_and_probability(
                 reasoning, question
@@ -299,9 +322,7 @@ class TemplateForecaster(ForecastBot):
         logger.info(
             f"Forecasted URL {question.page_url} as {prediction.declared_percentiles} with reasoning:\n{reasoning}"
         )
-        return ReasonedPrediction(
-            prediction_value=prediction, reasoning=reasoning
-        )
+        return ReasonedPrediction(prediction_value=prediction, reasoning=reasoning)
 
     def _create_upper_and_lower_bound_messages(
         self, question: NumericQuestion
@@ -343,9 +364,7 @@ if __name__ == "__main__":
         help="Specify the run mode (default: tournament)",
     )
     args = parser.parse_args()
-    run_mode: Literal["tournament", "quarterly_cup", "test_questions"] = (
-        args.mode
-    )
+    run_mode: Literal["tournament", "quarterly_cup", "test_questions"] = args.mode
     assert run_mode in [
         "tournament",
         "quarterly_cup",
@@ -371,6 +390,7 @@ if __name__ == "__main__":
     )
 
     if run_mode == "tournament":
+        template_bot.skip_previously_forecasted_questions = True
         forecast_reports = asyncio.run(
             template_bot.forecast_on_tournament(
                 MetaculusApi.CURRENT_AI_COMPETITION_ID, return_exceptions=True
