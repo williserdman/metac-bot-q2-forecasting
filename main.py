@@ -150,6 +150,8 @@ class TemplateForecaster(ForecastBot):
             If we are thinking about an event 100 years into the future you should step into it year by year. Base yourself on fact as much as possible.
             If you are thinking about how 100 people might behave, you should think first about how 99 of them would behave, then 98 of them, and so on.
 
+            Be conservative in your estimates. If you are not sure, it is better to be conservative and give a lower estimate than to be overly optimistic.
+
             While you are in the interview the single most important think you can do is reason out loud and explain your reasoning to the interviewer. This allows you to show your reasoning and helps the interviewer understand your thought process. If you make a mistake this allows you to correct it and show that you are a good forecaster.
 
             Your interview question is:
@@ -242,6 +244,8 @@ class TemplateForecaster(ForecastBot):
             If we are thinking about an event 100 years into the future you should step into it year by year. Base yourself on fact as much as possible.
             If you are thinking about how 100 people might behave, you should think first about how 99 of them would behave, then 98 of them, and so on.
 
+            Be conservative in your estimates. If you are not sure, it is better to be conservative and give a lower estimate than to be overly optimistic.
+
             While you are in the interview the single most important think you can do is reason out loud and explain your reasoning to the interviewer. This allows you to show your reasoning and helps the interviewer understand your thought process. If you make a mistake this allows you to correct it and show that you are a good forecaster.
 
             Your interview question is:
@@ -321,6 +325,8 @@ class TemplateForecaster(ForecastBot):
 
             If we are thinking about an event 100 years into the future you should step into it year by year. Base yourself on fact as much as possible.
             If you are thinking about how 100 people might behave, you should think first about how 99 of them would behave, then 98 of them, and so on.
+
+            Be conservative in your estimates. If you are not sure, it is better to be conservative and give a lower estimate than to be overly optimistic.
 
             While you are in the interview the single most important think you can do is reason out loud and explain your reasoning to the interviewer. This allows you to show your reasoning and helps the interviewer understand your thought process. If you make a mistake this allows you to correct it and show that you are a good forecaster.
 
