@@ -64,7 +64,11 @@ class TemplateForecaster(ForecastBot):
     )
     _concurrency_limiter = asyncio.Semaphore(_max_concurrent_questions)
 
-    async def run_research(self, question: MetaculusQuestion) -> str:
+    async def _factor_research(self, question: MetaculusQuestion) -> str:
+        """
+        This function will identify key factors for the question and then query news on those factors.
+        """
+
         async with self._concurrency_limiter:
             # Step 1: Generate 5 key factors
             key_factors_prompt = clean_indents(
@@ -133,10 +137,42 @@ class TemplateForecaster(ForecastBot):
                         Here is the general background information you will require to answer the question. The majority of your reasoning will be based around this information:
                         {general_research}
 
-                        Your assistant has also found some relevant information on factors that could influence the outcome of this question. This information is not required to answer the question, but should definitely be considered as it will set you apart:
+                        Here is the research on the key factors:
                         {research}"""
+
             logger.info(f"Research for question {question.page_url}:\n{full_research}")
             return full_research
+
+    async def run_research(self, question: MetaculusQuestion) -> str:
+
+        time.sleep(1)  # Rate limit for AskNews API
+
+        async with self._concurrency_limiter:
+            research = ""
+            if os.getenv("ASKNEWS_CLIENT_ID") and os.getenv("ASKNEWS_SECRET"):
+                try:
+                    research = await AskNewsSearcher().get_formatted_news_async(
+                        question.question_text
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Error researching question '{question.question_text}': {e}"
+                    )
+            elif os.getenv("EXA_API_KEY"):
+                research = await self._call_exa_smart_searcher(question.question_text)
+            elif os.getenv("PERPLEXITY_API_KEY"):
+                research = await self._call_perplexity(question.question_text)
+            elif os.getenv("OPENROUTER_API_KEY"):
+                research = await self._call_perplexity(
+                    question.question_text, use_open_router=True
+                )
+            else:
+                logger.warning(
+                    f"No research provider found when processing question URL {question.page_url}. Will pass back empty string."
+                )
+                research = ""
+            logger.info(f"Found Research for URL {question.page_url}:\n{research}")
+            return research
 
     async def _run_forecast_on_binary(
         self, question: BinaryQuestion, research: str
@@ -451,8 +487,8 @@ if __name__ == "__main__":
     ], "Invalid run mode"
 
     template_bot = TemplateForecaster(
-        research_reports_per_question=1,
-        predictions_per_research_report=5,
+        research_reports_per_question=3,
+        predictions_per_research_report=3,
         use_research_summary_to_forecast=False,
         publish_reports_to_metaculus=True,
         folder_to_save_reports_to=None,
