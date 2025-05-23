@@ -494,7 +494,8 @@ if __name__ == "__main__":
         folder_to_save_reports_to=None,
         skip_previously_forecasted_questions=True,
         llms={  # choose your model names or GeneralLlm llms here, otherwise defaults will be chosen for you
-            "default": GeneralLlm(model="metaculus/o4-mini", temperature=1)
+            "default": GeneralLlm(model="metaculus/o4-mini", temperature=1),
+            "summarizer": GeneralLlm(model="metaculus/o4-mini", temperature=1),
         },
     )
 
