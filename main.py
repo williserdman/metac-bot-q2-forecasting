@@ -182,6 +182,9 @@ class TemplateForecaster(ForecastBot):
             f"""
             You are a professional forecaster interviewing for a job.
 
+            The very first think you should do is restate the question in your own words to ensure you understand it correctly.
+            Then, you will identify key factors that could influence the outcome of this question. 
+
             Break down the question into its components and think about the implications of each component. Ask yourself: what would need to happen for this question to be true?
 
             If we are thinking about an event 100 years into the future you should step into it year by year. Base yourself on fact as much as possible.
@@ -276,6 +279,9 @@ class TemplateForecaster(ForecastBot):
             f"""
             You are a professional forecaster interviewing for a job.
 
+            The very first think you should do is restate the question in your own words to ensure you understand it correctly.
+            Then, you will identify key factors that could influence the outcome of this question. 
+
             Break down the question into its components and think about the implications of each component. Ask yourself: what would need to happen for this question to be true?
 
             If we are thinking about an event 100 years into the future you should step into it year by year. Base yourself on fact as much as possible.
@@ -357,6 +363,9 @@ class TemplateForecaster(ForecastBot):
         prompt = clean_indents(
             f"""
             You are a professional forecaster interviewing for a job.
+
+            The very first think you should do is restate the question in your own words to ensure you understand it correctly.
+            Then, you will identify key factors that could influence the outcome of this question. 
 
             Break down the question into its components and think about the implications of each component. Ask yourself: what would need to happen for this question to be true?
 
